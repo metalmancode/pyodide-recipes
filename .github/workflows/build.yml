@@ -227,7 +227,7 @@ jobs:
           sed -i 's/unvendor-tests: true/unvendor-tests: false/' packages/scipy/meta.yaml
 
       - name: Build recipes (full)
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || contains(github.event.pull_request.labels.*.name, 'full build')
+        if: github.event_name == 'push' || github.event_name == 'schedule' || contains(github.event.pull_request.labels.*.name, 'full build')
         run: |
           ccache -z
           export _EMCC_CACHE=1
@@ -235,6 +235,17 @@ jobs:
           export PIP_CONSTRAINT=$(pwd)/tools/constraints.txt
           mkdir -p result
           pyodide build-recipes "*" --install --install-dir=./repodata --log-dir=build-logs | tee result/build_output.log
+          ccache -s
+
+      - name: Build ONNX validation target
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          ccache -z
+          export _EMCC_CACHE=1
+
+          export PIP_CONSTRAINT=$(pwd)/tools/constraints.txt
+          mkdir -p result
+          pyodide build-recipes onnx --install --install-dir=./repodata --log-dir=build-logs | tee result/build_output.log
           ccache -s
 
       - name: Build recipes (changed only)
@@ -385,7 +396,7 @@ jobs:
             --runner=${{ matrix.test-config.runner }} \
             --rt ${{ matrix.test-config.runtime }} \
             --junitxml=test-results-${{ matrix.test-config.runtime }}.xml \
-            packages
+            packages/onnx
 
       - name: Surface failing tests
         if: always()
